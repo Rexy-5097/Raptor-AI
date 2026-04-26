@@ -11,6 +11,7 @@
 <p align="center">
   <a href="#features">Features</a> •
   <a href="#architecture">Architecture</a> •
+  <a href="#workflows">Workflows</a> •
   <a href="#setup">Setup</a> •
   <a href="#usage">Usage</a> •
   <a href="#project-structure">Structure</a> •
@@ -22,6 +23,8 @@
   <img src="https://img.shields.io/badge/platform-macOS-lightgrey?style=flat-square&logo=apple" alt="macOS" />
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License" />
   <img src="https://img.shields.io/badge/AI-Local--First-orange?style=flat-square" alt="Local AI" />
+  <img src="https://img.shields.io/badge/voice-activated-purple?style=flat-square&logo=audiomack" alt="Voice Activated" />
+  <img src="https://img.shields.io/badge/learning-adaptive-red?style=flat-square&logo=tensorflow" alt="Adaptive Learning" />
 </p>
 
 ---
@@ -54,31 +57,230 @@ Unlike conventional assistants that wait passively for commands, Raptor **thinks
 
 Raptor AI employs a **six-layer architecture** with clear separation of concerns:
 
-```
-┌──────────────────────────────────────────────────────────┐
-│                    PERCEPTION LAYER                      │
-│   Wake Listener (OpenWakeWord)  ←→  STT (Faster-Whisper) │
-├──────────────────────────────────────────────────────────┤
-│                   ORCHESTRATION CORE                     │
-│   Agent FSM  →  Intent Planner  →  Intelligence Layer    │
-├──────────────────────────────────────────────────────────┤
-│               EXECUTION & AUTOMATION LAYER               │
-│   Executor  →  Tool Registry  →  OS / Browser / APIs     │
-├──────────────────────────────────────────────────────────┤
-│                   BACKGROUND DAEMONS                     │
-│   Proactive Monitor (System · Network · External)        │
-├──────────────────────────────────────────────────────────┤
-│                   LEARNING & MEMORY                      │
-│   Priority Engine  ←→  Learning Engine  ←→  User Profile │
-├──────────────────────────────────────────────────────────┤
-│                   PRESENTATION LAYER                     │
-│   Local TTS  ←→  WebSocket Bridge  ←→  Next.js Dashboard │
-└──────────────────────────────────────────────────────────┘
+### High-Level System Architecture
+
+```mermaid
+graph TD
+    subgraph Perception["🎙️ Perception Layer"]
+        WL["Wake Listener<br/><i>OpenWakeWord (ONNX)</i>"]
+        STT["Speech-to-Text<br/><i>Faster-Whisper int8</i>"]
+    end
+
+    subgraph Orchestration["🧠 Orchestration Core"]
+        Agent["Agent FSM<br/><i>IDLE → LISTEN → PROCESS → SPEAK</i>"]
+        Planner["Intent Planner<br/><i>Regex + LLM Fallback</i>"]
+        Intel["Intelligence Layer<br/><i>Context & Thresholds</i>"]
+    end
+
+    subgraph Execution["⚙️ Execution & Automation"]
+        Exec["Action Executor"]
+        TR["Tool Registry"]
+        OS["OS Automation<br/><i>osascript / psutil</i>"]
+        Browser["Browser Bridge<br/><i>WebSocket ↔ Chrome</i>"]
+    end
+
+    subgraph Daemons["🔄 Background Daemons"]
+        Monitor["Proactive Monitor<br/><i>System · Network · External</i>"]
+    end
+
+    subgraph Learning["📚 Learning & Memory"]
+        PE["Priority Engine"]
+        LE["Learning Engine"]
+        UP[("User Profile<br/><i>JSON</i>")]
+        Log[("Interaction Log<br/><i>JSON</i>")]
+    end
+
+    subgraph Presentation["📊 Presentation Layer"]
+        TTS["Local TTS<br/><i>pyttsx3</i>"]
+        WS["WebSocket Bridge"]
+        Dash["Next.js Dashboard"]
+    end
+
+    %% Perception → Orchestration
+    WL -- "Wake Word Detected" --> Agent
+    STT -- "Transcription" --> Agent
+
+    %% Orchestration → Execution
+    Agent -- "Raw Intent" --> Planner
+    Planner -- "Parsed Task" --> Exec
+    Exec -- "Resolve" --> TR
+    TR -- "Execute" --> OS
+    TR -- "Execute" --> Browser
+
+    %% Execution → Intelligence
+    Exec -- "Result" --> Intel
+    Intel -- "Synthesized Response" --> Agent
+
+    %% Daemons → Intelligence
+    Monitor -- "Anomalies & Events" --> Intel
+    Intel -- "Check Priority" --> PE
+    PE -- "Fetch Profile" --> UP
+
+    %% Presentation
+    Agent -- "State Updates" --> WS
+    WS -- "Real-time Data" --> Dash
+    Agent -- "Speak" --> TTS
+
+    %% Learning Loop
+    Agent -- "User Feedback" --> LE
+    LE -- "Adjust Priorities" --> UP
+    LE -- "Record Event" --> Log
 ```
 
-**Dual-Mode Operation:**
-- **Reactive Mode:** User speaks → Plan → Execute → Respond (< 2s latency)
-- **Proactive Mode:** Monitor → Detect → Evaluate Priority → Alert/Suppress
+### Component Interaction Map
+
+```mermaid
+graph LR
+    subgraph Input["Input Sources"]
+        Voice["🎤 Voice"]
+        Sensors["📡 System Sensors"]
+        APIs["🌐 External APIs"]
+    end
+
+    subgraph Processing["Processing Pipeline"]
+        ASR["Automatic Speech<br/>Recognition"]
+        NLU["Natural Language<br/>Understanding"]
+        TaskRouter["Task Router<br/><i>Regex + LLM</i>"]
+    end
+
+    subgraph Actions["Action Domains"]
+        SysTool["System Tools"]
+        AutoTool["Automation Tools"]
+        BrowseTool["Browser Tools"]
+        ExtTool["External Data Tools"]
+    end
+
+    subgraph Output["Output Channels"]
+        Speech["🔊 Voice Response"]
+        Dashboard["📊 Dashboard"]
+        OSAction["💻 OS Actions"]
+    end
+
+    Voice --> ASR --> NLU --> TaskRouter
+    Sensors --> TaskRouter
+    APIs --> TaskRouter
+
+    TaskRouter --> SysTool --> OSAction
+    TaskRouter --> AutoTool --> OSAction
+    TaskRouter --> BrowseTool --> OSAction
+    TaskRouter --> ExtTool --> Speech
+
+    SysTool --> Dashboard
+    AutoTool --> Speech
+    BrowseTool --> Speech
+    ExtTool --> Dashboard
+```
+
+### Agent State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> IDLE
+
+    IDLE --> LISTENING : Wake Word Detected
+    LISTENING --> PROCESSING : Speech Captured
+    PROCESSING --> SPEAKING : Response Ready
+    SPEAKING --> IDLE : Utterance Complete
+
+    IDLE --> PROCESSING : Proactive Alert Triggered
+    PROCESSING --> IDLE : Alert Suppressed by Priority Engine
+
+    SPEAKING --> LISTENING : Follow-up Detected
+
+    note right of IDLE
+        Agent is dormant.
+        Wake Listener active.
+        Monitor daemons running.
+    end note
+
+    note right of PROCESSING
+        Planner routes intent.
+        Executor runs tools.
+        Intelligence analyzes results.
+    end note
+```
+
+---
+
+## Workflows
+
+### Voice Command Execution
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Wake as 🎙️ Wake Listener
+    participant STT as 🗣️ Local STT
+    participant Core as 🧠 Agent Core
+    participant Plan as 📋 Planner
+    participant Exec as ⚙️ Executor
+    participant Tool as 🔧 Tool Registry
+    participant TTS as 🔊 TTS Engine
+
+    User->>Wake: "Hey Raptor"
+    Wake-->>Core: Wake Word Detected
+    Core->>TTS: Play Chime
+    Core->>STT: Start Audio Capture
+    User->>STT: "What is my CPU usage?"
+    STT-->>Core: Transcription Complete
+    Core->>Plan: Parse Intent
+    Plan-->>Core: {tool: "get_system_info"}
+    Core->>Exec: Execute Plan
+    Exec->>Tool: Run get_system_info()
+    Tool-->>Exec: {CPU: "45%", RAM: "60%"}
+    Exec-->>Core: Result Ready
+    Core->>TTS: "Your CPU is at 45 percent."
+    Core->>Core: Return to IDLE
+```
+
+### Proactive Alert & Adaptive Learning
+
+```mermaid
+sequenceDiagram
+    participant Mon as 🔍 Monitor Daemon
+    participant PE as ⚖️ Priority Engine
+    participant Agent as 🧠 Agent Core
+    participant User as 👤 User
+    participant LE as 📚 Learning Engine
+    participant UP as 💾 User Profile
+
+    Mon->>Mon: Detect CPU Spike (95%)
+    Mon->>PE: Evaluate Event (cpu_spike)
+    PE->>UP: Fetch Priority Config
+    UP-->>PE: cpu_spike → HIGH
+    PE-->>Mon: Priority: HIGH → Allow Alert
+    Mon->>Agent: Inject Alert
+    Agent->>User: "⚠️ CPU critically high at 95%.<br/>Clear cache?"
+    User->>Agent: "No, ignore it."
+    Agent->>LE: Log Event (cpu_spike → IGNORED)
+    LE->>LE: Recalculate ignore_rate
+    LE->>UP: Update: cpu_spike → MEDIUM
+    
+    Note over LE,UP: Next time cpu_spike occurs,<br/>alert is shown with lower urgency<br/>or suppressed entirely.
+```
+
+### Explainability & User Override Flow
+
+```mermaid
+sequenceDiagram
+    participant User as 👤 User
+    participant Agent as 🧠 Agent Core
+    participant LC as 🔍 Learning Controls
+    participant UP as 💾 User Profile
+
+    User->>Agent: "Why don't I get cricket updates?"
+    Agent->>LC: detect_learning_intent()
+    LC->>UP: Fetch cricket priority data
+    UP-->>LC: {priority: LOW, ignore_rate: 0.75,<br/>events: 4, ignored: 3}
+    LC-->>Agent: Explanation Built
+    Agent->>User: "You ignored 3 of 4 cricket alerts.<br/>Priority auto-reduced to LOW."
+    
+    User->>Agent: "Always notify me about cricket."
+    Agent->>LC: Process Override
+    LC->>UP: Set cricket → ALWAYS
+    LC-->>Agent: Override Confirmed
+    Agent->>User: "Done. Cricket alerts set to ALWAYS."
+```
 
 ---
 
@@ -95,7 +297,7 @@ Raptor AI employs a **six-layer architecture** with clear separation of concerns
 
 ```bash
 # Clone the repository
-git clone https://github.com/soumyadebtripathy/raptor-ai.git
+git clone https://github.com/Rexy-5097/raptor-ai.git
 cd raptor-ai
 
 # Create virtual environment
@@ -252,8 +454,7 @@ Raptor AI requires the following macOS permissions:
 
 ## Author
 
-**Soumyadeb Tripathy**
-INT428 — Project-Based Assessment
+**[Rexy-5097](https://github.com/Rexy-5097)**
 
 ---
 
