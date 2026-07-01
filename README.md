@@ -20,12 +20,12 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/python-3.11+-blue?style=flat-square&logo=python" alt="Python" />
-  <img src="https://img.shields.io/badge/platform-macOS-lightgrey?style=flat-square&logo=apple" alt="macOS" />
-  <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License" />
-  <img src="https://img.shields.io/badge/AI-Local--First-orange?style=flat-square" alt="Local AI" />
-  <img src="https://img.shields.io/badge/voice-activated-purple?style=flat-square&logo=audiomack" alt="Voice Activated" />
-  <img src="https://img.shields.io/badge/learning-adaptive-red?style=flat-square&logo=tensorflow" alt="Adaptive Learning" />
+  <img src="https://img.shields.io/badge/python-3.11+-1f2328?style=flat-square&logo=python&logoColor=white" alt="Python" />
+  <img src="https://img.shields.io/badge/platform-macOS-1f2328?style=flat-square&logo=apple&logoColor=white" alt="macOS" />
+  <img src="https://img.shields.io/badge/license-MIT-1f2328?style=flat-square" alt="License" />
+  <img src="https://img.shields.io/badge/AI-Local--First-1f2328?style=flat-square" alt="Local AI" />
+  <img src="https://img.shields.io/badge/voice-activated-1f2328?style=flat-square&logo=audiomack&logoColor=white" alt="Voice Activated" />
+  <img src="https://img.shields.io/badge/learning-adaptive-1f2328?style=flat-square" alt="Adaptive Learning" />
 </p>
 
 ---
@@ -449,8 +449,8 @@ sequenceDiagram
 
 ```bash
 # Clone the repository
-git clone https://github.com/Rexy-5097/raptor-ai.git
-cd raptor-ai
+git clone https://github.com/Rexy-5097/Raptor-AI.git
+cd Raptor-AI
 
 # Create virtual environment
 python3 -m venv .venv
